@@ -1,16 +1,17 @@
-package com.example.preppin
+package com.example.preppin.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.preppin.MealPlanViewModel
+import com.example.preppin.model.Cell
+import com.example.preppin.model.Day
+import com.example.preppin.model.DayMeals
+import com.example.preppin.model.MealType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,8 +36,7 @@ fun MealPlanScreen(
         }
     ) { innerPadding ->
         CalendarGrid(
-            slots = uiState.slots,
-            onSlotClick = { day, meal -> viewModel.toggleSlot(day, meal) },
+            calendar = uiState.calendar,
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
@@ -46,12 +46,12 @@ fun MealPlanScreen(
 }
 @Composable
 private fun CalendarGrid(
-    slots: List<MealSlot>,
-    onSlotClick: (Day, MealType) -> Unit,
+    calendar: Map<Day, DayMeals>,
     modifier: Modifier = Modifier
 ) {
     val meals = listOf(MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER)
     val days = Day.entries
+
     Column(modifier) {
         Row(Modifier.fillMaxWidth()) {
             Spacer(modifier = Modifier.width(30.dp))
@@ -66,8 +66,10 @@ private fun CalendarGrid(
         }
         Spacer(Modifier.height(8.dp))
 
-
+        // rows
         days.forEach {day ->
+            val dayMeals = calendar[day] ?: DayMeals()
+
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -83,32 +85,24 @@ private fun CalendarGrid(
                 )
 
                 meals.forEach { meal ->
-                    val slot = slots.first {
-                        it.day == day && it.mealType == meal
-                    }
+                    val cell = dayMeals.get(meal)
+
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .padding(1.dp)
                     ) {
-                        SlotCell(
-                            slot = slot,
-                            onClick = { onSlotClick(day, meal) }
-                        )
+                        SlotCell( cell = cell )
                     }
                 }
             }
         }
-
-
-
     }
 }
 
 @Composable
 private fun SlotCell(
-    slot: MealSlot,
-    onClick: () -> Unit,
+    cell: Cell?,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -117,13 +111,20 @@ private fun SlotCell(
         modifier = modifier
             .height(70.dp)
             .fillMaxWidth()
-            .clickable { onClick() }
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            when (slot.status) {
-                MealStatus.EMPTY -> Text("")
-                MealStatus.COOKING -> StatusChip(text = slot.label ?: "Cooking")
-                MealStatus.PREPPED -> StatusChip(text = slot.label ?: "Prepped!")
+            when (cell) {
+                null -> { /* Empty */ }
+
+                is Cell.Cooking -> Column {
+                    Text("Cooking", fontWeight = FontWeight.Bold)
+                    Text(cell.recipe)
+                    if (cell.ateOne) Text("Eat 1 serving", style = MaterialTheme.typography.labelSmall)
+                }
+                is Cell.Prepped -> Column {
+                    Text("Prepped", fontWeight = FontWeight.Bold)
+                    Text(cell.recipe)
+                }
             }
         }
     }
