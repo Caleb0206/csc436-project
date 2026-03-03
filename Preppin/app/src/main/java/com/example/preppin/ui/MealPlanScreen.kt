@@ -17,22 +17,12 @@ import com.example.preppin.model.MealType
 @Composable
 fun MealPlanScreen(
     viewModel: MealPlanViewModel,
-    onRecipesClick: () -> Unit = {},
-    onPrepClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Preppin'")}
-            )
-        },
         bottomBar = {
-            BottomButtons(
-                onRecipesClick = onRecipesClick,
-                onPrepClick = onPrepClick
-            )
+
         }
     ) { innerPadding ->
         CalendarGrid(
@@ -44,6 +34,7 @@ fun MealPlanScreen(
         )
     }
 }
+
 @Composable
 private fun CalendarGrid(
     calendar: Map<Day, DayMeals>,
@@ -58,7 +49,7 @@ private fun CalendarGrid(
 
             meals.forEach { meal ->
                 Text(
-                    text = meal.name.lowercase().replaceFirstChar {it.uppercase()},
+                    text = meal.name.lowercase().replaceFirstChar { it.uppercase() },
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
@@ -67,7 +58,7 @@ private fun CalendarGrid(
         Spacer(Modifier.height(8.dp))
 
         // rows
-        days.forEach {day ->
+        days.forEach { day ->
             val dayMeals = calendar[day] ?: DayMeals()
 
             Row(
@@ -92,7 +83,7 @@ private fun CalendarGrid(
                             .weight(1f)
                             .padding(1.dp)
                     ) {
-                        SlotCell( cell = cell )
+                        SlotCell(cell = cell)
                     }
                 }
             }
@@ -114,13 +105,18 @@ private fun SlotCell(
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             when (cell) {
-                null -> { /* Empty */ }
+                null -> { /* Empty */
+                }
 
                 is Cell.Cooking -> Column {
                     Text("Cooking", fontWeight = FontWeight.Bold)
                     Text(cell.recipe)
-                    if (cell.ateOne) Text("Eat 1 serving", style = MaterialTheme.typography.labelSmall)
+                    if (cell.ateOne) Text(
+                        "Eat 1 serving",
+                        style = MaterialTheme.typography.labelSmall
+                    )
                 }
+
                 is Cell.Prepped -> Column {
                     Text("Prepped", fontWeight = FontWeight.Bold)
                     Text(cell.recipe)
@@ -141,29 +137,5 @@ private fun StatusChip(text: String) {
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             fontWeight = FontWeight.Medium
         )
-    }
-}
-
-@Composable
-private fun BottomButtons(
-    onRecipesClick: () -> Unit,
-    onPrepClick: () -> Unit
-) {
-    Surface(tonalElevation = 4.dp) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-        ) {
-            Button(
-                onClick = onRecipesClick,
-                modifier = Modifier.weight(1f)
-            ) { Text("Recipes") }
-
-            Button(
-                onClick = onPrepClick,
-                modifier = Modifier.weight(1f)
-            ) { Text("Prep!") }
-        }
     }
 }

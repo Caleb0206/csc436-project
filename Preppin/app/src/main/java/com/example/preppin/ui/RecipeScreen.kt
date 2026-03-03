@@ -20,11 +20,10 @@ private enum class RecipeDialogMode { ADD, EDIT }
 fun RecipeScreen(
     recipes: List<Recipe>,
     onUpsertRecipe: (Recipe) -> Unit,
-    onBack: () -> Unit = {}
 ) {
-    var isDialogOpen by remember { mutableStateOf(false)}
-    var mode by remember { mutableStateOf(RecipeDialogMode.EDIT)}
-    var activeRecipeId by remember { mutableStateOf<String?>(null)}
+    var isDialogOpen by remember { mutableStateOf(false) }
+    var mode by remember { mutableStateOf(RecipeDialogMode.EDIT) }
+    var activeRecipeId by remember { mutableStateOf<String?>(null) }
 
     val activeRecipe = remember(activeRecipeId, recipes) {
         activeRecipeId?.let { id -> recipes.firstOrNull { it.id == id } }
@@ -70,9 +69,6 @@ fun RecipeScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Recipes") },
-                navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Back") }
-                },
                 actions = {
                     Button(onClick = { openAdd() }) { Text("Add Recipe") }
                 }
@@ -98,13 +94,14 @@ fun RecipeScreen(
             EditRecipeDialog(
                 mode = mode,
                 recipe = activeRecipe,
-                onDismiss = { closeDialog()},
-                onSave = {name, ingredients -> handleSave(name, ingredients)}
+                onDismiss = { closeDialog() },
+                onSave = { name, ingredients -> handleSave(name, ingredients) }
             )
         }
 
     }
 }
+
 @Composable
 private fun RecipeCard(
     recipe: Recipe,
