@@ -1,5 +1,6 @@
 package com.example.preppin.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -9,7 +10,9 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 
@@ -45,9 +48,12 @@ private fun AppHeader(
     onToggleDarkMode: (Boolean) -> Unit,
 ) {
     TopAppBar(
-        title = { Text("Preppin'") },
+        title = { Text("Preppin'", style = MaterialTheme.typography.titleLarge) },
         actions = {
-            Row {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Text("Dark")
                 Switch(
                     checked = darkMode,

@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.preppin.MealPlanViewModel
 import com.example.preppin.model.Cell
@@ -19,18 +20,58 @@ fun MealPlanScreen(
     viewModel: MealPlanViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showResetDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
-        bottomBar = {
-
-        }
-    ) { innerPadding ->
-        CalendarGrid(
-            calendar = uiState.calendar,
+    Scaffold() { innerPadding ->
+        Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
                 .padding(16.dp)
+        ) {
+
+
+            CalendarGrid(
+                calendar = uiState.calendar,
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .weight(1f)
+            )
+            Spacer(Modifier.height(12.dp))
+
+            Button(
+                onClick = { showResetDialog = true },
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
+            ) {
+                Text("Reset")
+            }
+        }
+    }
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            title = { Text("Clear calendar?") },
+            text = { Text("This will delete all meal slots from the database.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.resetCalendar()
+                        showResetDialog = false
+                    }
+                ) { Text("Clear") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+
         )
     }
 }
@@ -43,7 +84,7 @@ private fun CalendarGrid(
     val meals = listOf(MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER)
     val days = Day.entries
 
-    Column(modifier) {
+    Column(modifier = modifier) {
         Row(Modifier.fillMaxWidth()) {
             Spacer(modifier = Modifier.width(30.dp))
 

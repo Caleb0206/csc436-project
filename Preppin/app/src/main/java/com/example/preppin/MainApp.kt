@@ -18,9 +18,12 @@ import com.example.preppin.ui.theme.PreppinTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainApp(viewModel: MealPlanViewModel) {
+fun MainApp(
+    viewModel: MealPlanViewModel,
+    darkMode: Boolean,
+    onToggleDarkMode: (Boolean) -> Unit
+) {
     val navController = rememberNavController()
-    var darkMode by remember { mutableStateOf(false) }
 
     val recipes by viewModel.recipes.collectAsState()
 
@@ -31,7 +34,7 @@ fun MainApp(viewModel: MealPlanViewModel) {
         AppLayout(
             navController = navController,
             darkMode = darkMode,
-            onToggleDarkMode = { darkMode = it }
+            onToggleDarkMode = onToggleDarkMode
         ) { contentModifier ->
             NavHost(
                 navController = navController,

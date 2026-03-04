@@ -145,6 +145,12 @@ class MealPlanViewModel(private val repo: MealRepository) : ViewModel() {
         }
     }
 
+    fun resetCalendar() {
+        viewModelScope.launch {
+            repo.clearSlots()
+        }
+    }
+
     fun deleteRecipe(recipe: Recipe) {
         viewModelScope.launch {
             repo.deleteRecipe(recipe.toEntity())
