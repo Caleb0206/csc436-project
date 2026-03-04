@@ -1,42 +1,66 @@
 package com.example.preppin
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.preppin.data.MealRepository
+import com.example.preppin.data.MealSlotEntity
+import com.example.preppin.data.cellToEntity
+import com.example.preppin.data.toCell
+import com.example.preppin.data.toDomain
+import com.example.preppin.data.toEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.max
 import com.example.preppin.model.*
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 data class MealPlanUiState(
     val calendar: Map<Day, DayMeals> = emptyMap()
 )
 
-class MealPlanViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(
-        MealPlanUiState(calendar = seedCalendar())
-    )
-    val uiState: StateFlow<MealPlanUiState> = _uiState.asStateFlow()
+class MealPlanViewModel(private val repo: MealRepository) : ViewModel() {
+    val recipes: StateFlow<List<Recipe>> = repo.recipesFlow
+        .map { list -> list.map { it.toDomain() } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    fun setCooking(day: Day, meal: MealType, recipe: String, ateOne: Boolean = false) {
-        updateCell(day, meal, Cell.Cooking(recipe, ateOne))
+    private fun slotsListToCalendar(slots: List<MealSlotEntity>): Map<Day, DayMeals> {
+        val base = Day.entries.associateWith { DayMeals() }.toMutableMap()
+        for (e in slots) {
+            val day = try {
+                Day.valueOf(e.day)
+            } catch (e: Exception) {
+                continue
+            }
+            val meal = try {
+                MealType.valueOf(e.mealType)
+            } catch (e: Exception) {
+                continue
+            }
+            val cell = e.toCell()
+            val dm = base[day] ?: DayMeals()
+            base[day] = dm.set(meal, cell)
+        }
+        return base
     }
 
-    fun setPrepped(day: Day, meal: MealType, recipe: String) {
-        updateCell(day, meal, Cell.Prepped(recipe))
-    }
+    val uiState: StateFlow<MealPlanUiState> = repo.slotsFlow
+        .map { slots -> MealPlanUiState(calendar = slotsListToCalendar(slots)) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, MealPlanUiState(calendar = seedCalendar()))
 
-    fun clear(day: Day, meal: MealType) {
-        updateCell(day, meal, null)
-    }
 
-    fun prepSubmit(req: PrepRequest) : PrepResult {
+    fun prepSubmit(req: PrepRequest): PrepResult {
         val servingsNum = req.servings.coerceAtLeast(0)
         val leftovers = max(0, servingsNum - (if (req.eatOneServing) 1 else 0))
 
         val days = Day.entries
         val dayIndex = days.indexOf(req.day)
 
-        val mealOrder = mapOf (
+        val mealOrder = mapOf(
             MealType.BREAKFAST to 0,
             MealType.LUNCH to 1,
             MealType.DINNER to 2
@@ -67,11 +91,12 @@ class MealPlanViewModel : ViewModel() {
             addAll(slots.take(leftovers))
         }
 
-        val current = _uiState.value.calendar
+        val currentSlotsSnapshot = runBlockingFetchSlots()
+        val currentCalendar = slotsListToCalendar(currentSlotsSnapshot)
 
         // check for conflicts
         val conflicts = targets.filter { (d, m) ->
-            (current[d] ?: DayMeals()).get(m) != null
+            (currentCalendar[d] ?: DayMeals()).get(m) != null
         }
 
         if (conflicts.isNotEmpty()) {
@@ -81,43 +106,81 @@ class MealPlanViewModel : ViewModel() {
                 message = "Slot filled already (${d.name.lowercase()} ${m.name.lowercase()}). Try another time"
             )
         }
-        val updated = current.toMutableMap()
 
-        fun putCell(day: Day, meal: MealType, cell: Cell) {
-            val dm = updated[day] ?: DayMeals()
-            updated[day] = dm.set(meal, cell)
+        viewModelScope.launch {
+            repo.upsertSlot(
+                cellToEntity(
+                    req.day,
+                    req.time,
+                    Cell.Cooking(req.recipeName, req.eatOneServing)
+                )
+            )
+            targets.drop(1).forEach { (d, m) ->
+                repo.upsertSlot(cellToEntity(d, m, Cell.Prepped(req.recipeName)))
+
+            }
         }
-
-        putCell(req.day, req.time, Cell.Cooking(recipe = req.recipeName, ateOne = req.eatOneServing))
-
-        targets.drop(1).forEach { (d, m) ->
-            putCell(d, m, Cell.Prepped(recipe = req.recipeName))
-        }
-
-        _uiState.value = _uiState.value.copy(calendar = updated)
         return PrepResult(ok = true)
     }
 
-
-    private fun updateCell(day: Day, meal: MealType, cell: Cell?) {
-        val current = _uiState.value.calendar
-        val dayMeals = current[day] ?: DayMeals()
-        _uiState.value = MealPlanUiState(
-            calendar = current + (day to dayMeals.set(meal, cell))
-        )
+    private fun runBlockingFetchSlots(): List<MealSlotEntity> {
+        return kotlinx.coroutines.runBlocking {
+            repo.slotsFlow.first()
+        }
     }
 
+
     private fun seedCalendar(): Map<Day, DayMeals> {
-        // Create all 7 days present, like your DAYS array
         val base = Day.entries.associateWith { DayMeals() }.toMutableMap()
-
-        // Seed like your HTML example
-        base[Day.TUES] = base[Day.TUES]!!.set(MealType.DINNER, Cell.Cooking("Chicken tacos", ateOne = false))
-        base[Day.WED] = base[Day.WED]!!
-            .set(MealType.LUNCH, Cell.Prepped("Pasta salad"))
+        base[Day.TUES] =
+            base[Day.TUES]!!.set(MealType.DINNER, Cell.Cooking("Chicken tacos", ateOne = false))
+        base[Day.WED] = base[Day.WED]!!.set(MealType.LUNCH, Cell.Prepped("Pasta salad"))
             .set(MealType.DINNER, Cell.Prepped("Stir fry"))
-
         return base
+    }
+
+    fun upsertRecipe(recipe: Recipe) {
+        viewModelScope.launch {
+            repo.upsertRecipe(recipe.toEntity())
+        }
+    }
+
+    fun deleteRecipe(recipe: Recipe) {
+        viewModelScope.launch {
+            repo.deleteRecipe(recipe.toEntity())
+        }
+    }
+
+
+    fun setCooking(day: Day, meal: MealType, recipe: String, ateOne: Boolean = false) {
+        viewModelScope.launch {
+            repo.upsertSlot(
+                cellToEntity(
+                    day,
+                    meal,
+                    Cell.Cooking(recipe, ateOne)
+                )
+            )
+        }
+    }
+
+    fun setPrepped(day: Day, meal: MealType, recipe: String) {
+        viewModelScope.launch { repo.upsertSlot(cellToEntity(day, meal, Cell.Prepped(recipe))) }
+    }
+
+    fun clear(day: Day, meal: MealType) {
+        viewModelScope.launch {
+            // delete by key: we created MealSlotEntity with composite PK day+meal_type so we can delete by constructing that entity:
+            repo.upsertSlot(
+                MealSlotEntity(
+                    day = day.name,
+                    mealType = meal.name,
+                    status = "EMPTY",
+                    recipeName = null,
+                    ateOne = false
+                )
+            )
+        }
     }
 
 }

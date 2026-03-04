@@ -2,6 +2,7 @@ package com.example.preppin
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,28 +18,12 @@ import com.example.preppin.ui.theme.PreppinTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainApp() {
+fun MainApp(viewModel: MealPlanViewModel) {
     val navController = rememberNavController()
-    val viewModel: MealPlanViewModel = viewModel()
     var darkMode by remember { mutableStateOf(false) }
 
-    var recipes by remember {
-        mutableStateOf(
-            listOf(
-                Recipe("1", "Braised Pork Rice", "Ground Pork, White Rice, Soy Sauce..."),
-                Recipe("2", "Stir Fry Beef Udon", "Beef Rolls, Udon noodles..."),
-                Recipe("3", "Scallion Oil Noodles", "Noodles, Green Onions, Shallots...")
-            )
-        )
-    }
+    val recipes by viewModel.recipes.collectAsState()
 
-    fun upsertRecipe(updated: Recipe) {
-        recipes = if (recipes.any { it.id == updated.id }) {
-            recipes.map { if (it.id == updated.id) updated else it }
-        } else {
-            recipes + updated
-        }
-    }
     PreppinTheme(
         darkTheme = darkMode,
         dynamicColor = false
@@ -72,7 +57,7 @@ fun MainApp() {
                 composable("recipes") {
                     RecipeScreen(
                         recipes = recipes,
-                        onUpsertRecipe = { upsertRecipe(it) },
+                        onUpsertRecipe = { recipe -> viewModel.upsertRecipe(recipe) },
                     )
                 }
             }
