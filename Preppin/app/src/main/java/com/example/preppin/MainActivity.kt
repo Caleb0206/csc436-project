@@ -30,8 +30,9 @@ class MainActivity : ComponentActivity() {
             applicationContext,
             AppDatabase::class.java,
             "preppin.db"
-
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
 
         repo = MealRepository(db.recipeDao(), db.mealSlotDao())
         vmFactory = MealPlanViewModelFactory(repo)

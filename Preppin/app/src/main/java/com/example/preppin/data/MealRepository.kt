@@ -13,6 +13,7 @@ class MealRepository(
     suspend fun upsertRecipe(r: RecipeEntity) = recipeDao.upsert(r)
     suspend fun deleteRecipe(r: RecipeEntity) = recipeDao.delete(r)
 
+    suspend fun getRecipeById(id: String): RecipeEntity? = recipeDao.getById(id)
     val slotsFlow: Flow<List<MealSlotEntity>> = slotDao.getAllSlots()
     fun slotsForDay(day: Day): Flow<List<MealSlotEntity>> = slotDao.getSlotsForDay(day.name)
 

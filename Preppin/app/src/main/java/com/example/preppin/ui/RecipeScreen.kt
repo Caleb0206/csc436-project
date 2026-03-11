@@ -7,11 +7,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import java.util.UUID
 import com.example.preppin.Recipe
+import java.io.File
 
 private enum class RecipeDialogMode { ADD, EDIT }
 
@@ -20,6 +23,7 @@ private enum class RecipeDialogMode { ADD, EDIT }
 fun RecipeScreen(
     recipes: List<Recipe>,
     onUpsertRecipe: (Recipe) -> Unit,
+    onTakePhoto: (String) -> Unit,
 ) {
     var isDialogOpen by remember { mutableStateOf(false) }
     var mode by remember { mutableStateOf(RecipeDialogMode.EDIT) }
@@ -85,7 +89,8 @@ fun RecipeScreen(
             recipes.forEach { r ->
                 RecipeCard(
                     recipe = r,
-                    onEdit = { openEdit(r) }
+                    onEdit = { openEdit(r) },
+                    onTakePhoto = { onTakePhoto(r.id) }
                 )
             }
         }
@@ -105,7 +110,8 @@ fun RecipeScreen(
 @Composable
 private fun RecipeCard(
     recipe: Recipe,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    onTakePhoto: () -> Unit,
 ) {
     Card {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -121,7 +127,19 @@ private fun RecipeCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp)
-            ) {}
+            ) {
+                if (!recipe.photoUri.isNullOrBlank()) {
+                    AsyncImage(
+                        model = File(recipe.photoUri),
+                        contentDescription = "${recipe.name} captured on Android",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        TextButton(onClick = onTakePhoto) { Text("Add Photo") }
+                    }
+                }
+            }
 
             Text(recipe.ingredients)
         }

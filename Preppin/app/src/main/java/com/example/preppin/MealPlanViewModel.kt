@@ -27,7 +27,7 @@ class MealPlanViewModel(private val repo: MealRepository) : ViewModel() {
     val recipes: StateFlow<List<Recipe>> = repo.recipesFlow
         .map { list -> list.map { it.toDomain() } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
+    
     private fun slotsListToCalendar(slots: List<MealSlotEntity>): Map<Day, DayMeals> {
         val base = Day.entries.associateWith { DayMeals() }.toMutableMap()
         for (e in slots) {
@@ -151,41 +151,11 @@ class MealPlanViewModel(private val repo: MealRepository) : ViewModel() {
         }
     }
 
-    fun deleteRecipe(recipe: Recipe) {
+
+    fun setRecipePhoto(recipeId: String, photoUri: String) {
         viewModelScope.launch {
-            repo.deleteRecipe(recipe.toEntity())
-        }
-    }
-
-
-    fun setCooking(day: Day, meal: MealType, recipe: String, ateOne: Boolean = false) {
-        viewModelScope.launch {
-            repo.upsertSlot(
-                cellToEntity(
-                    day,
-                    meal,
-                    Cell.Cooking(recipe, ateOne)
-                )
-            )
-        }
-    }
-
-    fun setPrepped(day: Day, meal: MealType, recipe: String) {
-        viewModelScope.launch { repo.upsertSlot(cellToEntity(day, meal, Cell.Prepped(recipe))) }
-    }
-
-    fun clear(day: Day, meal: MealType) {
-        viewModelScope.launch {
-            // delete by key: we created MealSlotEntity with composite PK day+meal_type so we can delete by constructing that entity:
-            repo.upsertSlot(
-                MealSlotEntity(
-                    day = day.name,
-                    mealType = meal.name,
-                    status = "EMPTY",
-                    recipeName = null,
-                    ateOne = false
-                )
-            )
+            val current = repo.getRecipeById(recipeId) ?: return@launch
+            repo.upsertRecipe(current.copy(photoUri = photoUri))
         }
     }
 

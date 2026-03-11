@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
 import androidx.navigation.compose.rememberNavController
 import com.example.preppin.ui.AppLayout
+import com.example.preppin.ui.CameraScreen
 import com.example.preppin.ui.MealPlanScreen
 import com.example.preppin.ui.PrepScreen
 import com.example.preppin.ui.RecipeScreen
@@ -61,6 +62,19 @@ fun MainApp(
                     RecipeScreen(
                         recipes = recipes,
                         onUpsertRecipe = { recipe -> viewModel.upsertRecipe(recipe) },
+                        onTakePhoto = { recipeId -> navController.navigate("camera/$recipeId") }
+                    )
+                }
+
+                composable("camera/{recipeId}") { backStack ->
+                    val recipeId = backStack.arguments?.getString("recipeId") ?: return@composable
+                    CameraScreen(
+                        recipeId = recipeId,
+                        onCancel = { navController.popBackStack() },
+                        onPhotoSaved = { photoUri ->
+                            viewModel.setRecipePhoto(recipeId, photoUri)
+                            navController.popBackStack()
+                        }
                     )
                 }
             }

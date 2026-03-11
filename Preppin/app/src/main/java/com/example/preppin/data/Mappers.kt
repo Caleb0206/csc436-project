@@ -6,8 +6,11 @@ import com.example.preppin.model.MealType
 import com.example.preppin.model.MealStatus
 import com.example.preppin.model.Cell
 
-fun RecipeEntity.toDomain(): Recipe = Recipe(id = id, name = name, ingredients = ingredients)
-fun Recipe.toEntity(): RecipeEntity = RecipeEntity(id = id, name = name, ingredients = ingredients)
+fun RecipeEntity.toDomain(): Recipe =
+    Recipe(id = id, name = name, ingredients = ingredients, photoUri = photoUri)
+
+fun Recipe.toEntity(): RecipeEntity =
+    RecipeEntity(id = id, name = name, ingredients = ingredients, photoUri = photoUri)
 
 // entity -> domain Cell?
 fun MealSlotEntity.toCell(): Cell? {
