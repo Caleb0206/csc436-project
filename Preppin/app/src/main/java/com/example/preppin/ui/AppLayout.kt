@@ -2,6 +2,7 @@ package com.example.preppin.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -48,6 +49,7 @@ private fun AppHeader(
     onToggleDarkMode: (Boolean) -> Unit,
 ) {
     TopAppBar(
+        modifier = Modifier.height(90.dp),
         title = { Text("Preppin'", style = MaterialTheme.typography.titleLarge) },
         actions = {
             Row(
