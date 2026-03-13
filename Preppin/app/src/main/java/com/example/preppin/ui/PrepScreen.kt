@@ -31,9 +31,7 @@ fun PrepScreen(
 
     var error by remember { mutableStateOf<String?>(null) }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Prep!") }) }
-    ) { inner ->
+    Scaffold() { inner ->
         Column(
             modifier = Modifier
                 .padding(inner)

@@ -62,7 +62,7 @@ fun MainApp(
                     RecipeScreen(
                         recipes = recipes,
                         onUpsertRecipe = { recipe -> viewModel.upsertRecipe(recipe) },
-                        onTakePhoto = { recipeId -> navController.navigate("camera/$recipeId") }
+                        onTakePhoto = { recipeId -> navController.navigate("camera/$recipeId") },
                     )
                 }
 

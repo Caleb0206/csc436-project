@@ -3,14 +3,21 @@ package com.example.preppin.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.sqlite.db.SupportSQLiteOpenHelper
 import coil.compose.AsyncImage
 import java.util.UUID
 import com.example.preppin.Recipe
@@ -69,31 +76,42 @@ fun RecipeScreen(
         closeDialog()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Recipes") },
-                actions = {
-                    Button(onClick = { openAdd() }) { Text("Add Recipe") }
+    Scaffold() { inner ->
+        val isLandscape =
+            LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        if (isLandscape) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier
+                    .padding(inner)
+                    .fillMaxSize()
+                    .padding(16.dp),
+            ) {
+                items(recipes, key = { it.id }) { r ->
+                    RecipeCard(
+                        recipe = r,
+                        onEdit = { openEdit(r) },
+                        onTakePhoto = { onTakePhoto(r.id) }
+                    )
                 }
-            )
-        }
-    ) { inner ->
-        Column(
-            modifier = Modifier
-                .padding(inner)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            recipes.forEach { r ->
-                RecipeCard(
-                    recipe = r,
-                    onEdit = { openEdit(r) },
-                    onTakePhoto = { onTakePhoto(r.id) }
-                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(inner)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Top
+            ) {
+                items(recipes, key = { it.id }) { r ->
+                    RecipeCard(
+                        recipe = r,
+                        onEdit = { openEdit(r) },
+                        onTakePhoto = { onTakePhoto(r.id) }
+                    )
+                }
             }
         }
+
 
         if (isDialogOpen) {
             EditRecipeDialog(

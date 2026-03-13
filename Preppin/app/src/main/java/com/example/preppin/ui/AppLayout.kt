@@ -79,8 +79,8 @@ private fun AppNavBar(
     navController: NavController
 ) {
     val items = listOf(
-        BottomDest("home", "Home", Icons.Filled.Home),
         BottomDest("recipes", "Recipes", Icons.Filled.List),
+        BottomDest("home", "Home", Icons.Filled.Home),
         BottomDest("prep", "Prep", Icons.Filled.AddCircle),
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
