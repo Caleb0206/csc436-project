@@ -1,5 +1,8 @@
 # Preppin – CSC436 Mobile App
 
+## Figma
+[Figma Wireframe Link](https://www.figma.com/design/6XUBQ9xms5mGrzbr9o8xai/CSC436-Wireframe-Map?node-id=2002-446&m=dev&t=FeX5pmwSyXBAfRDa-1)
+
 ## How to Run
 
 1. Clone the repository:
