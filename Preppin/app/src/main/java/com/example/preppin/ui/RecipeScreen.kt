@@ -8,8 +8,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.sqlite.db.SupportSQLiteOpenHelper
 import coil.compose.AsyncImage
 import java.util.UUID
 import com.example.preppin.Recipe
@@ -30,6 +27,7 @@ private enum class RecipeDialogMode { ADD, EDIT }
 fun RecipeScreen(
     recipes: List<Recipe>,
     onUpsertRecipe: (Recipe) -> Unit,
+    onDeleteRecipe: (Recipe) -> Unit,
     onTakePhoto: (String) -> Unit,
 ) {
     var isDialogOpen by remember { mutableStateOf(false) }
@@ -79,49 +77,72 @@ fun RecipeScreen(
     Scaffold() { inner ->
         val isLandscape =
             LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-        if (isLandscape) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier
-                    .padding(inner)
-                    .fillMaxSize()
-                    .padding(16.dp),
-            ) {
-                items(recipes, key = { it.id }) { r ->
-                    RecipeCard(
-                        recipe = r,
-                        onEdit = { openEdit(r) },
-                        onTakePhoto = { onTakePhoto(r.id) }
-                    )
+        Box(
+            modifier = Modifier
+                .padding(inner)
+                .fillMaxSize()
+        ) {
+            if (isLandscape) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier
+                        .padding(inner)
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 88.dp)
+                ) {
+                    items(recipes, key = { it.id }) { r ->
+                        RecipeCard(
+                            recipe = r,
+                            onEdit = { openEdit(r) },
+                            onTakePhoto = { onTakePhoto(r.id) },
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 88.dp)
+                ) {
+                    items(recipes, key = { it.id }) { r ->
+                        RecipeCard(
+                            recipe = r,
+                            onEdit = { openEdit(r) },
+                            onTakePhoto = { onTakePhoto(r.id) }
+                        )
+                    }
                 }
             }
-        } else {
-            LazyColumn(
+            Button(
+                onClick = { openAdd() },
                 modifier = Modifier
-                    .padding(inner)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Top
+                    .align(Alignment.BottomEnd)
+                    .padding(10.dp)
             ) {
-                items(recipes, key = { it.id }) { r ->
-                    RecipeCard(
-                        recipe = r,
-                        onEdit = { openEdit(r) },
-                        onTakePhoto = { onTakePhoto(r.id) }
-                    )
-                }
+                Text("Add Recipe")
+            }
+
+
+            if (isDialogOpen) {
+                EditRecipeDialog(
+                    mode = mode,
+                    recipe = activeRecipe,
+                    onDismiss = { closeDialog() },
+                    onSave = { name, ingredients -> handleSave(name, ingredients) },
+                    onTakePhoto = { activeRecipe?.id?.let { id -> onTakePhoto(id) } },
+                    onDelete = {
+                        activeRecipe?.let {
+                            onDeleteRecipe(it)
+                            closeDialog()
+                        }
+                    }
+                )
             }
         }
-
-
-        if (isDialogOpen) {
-            EditRecipeDialog(
-                mode = mode,
-                recipe = activeRecipe,
-                onDismiss = { closeDialog() },
-                onSave = { name, ingredients -> handleSave(name, ingredients) }
-            )
-        }
-
     }
 }
 
@@ -169,7 +190,9 @@ private fun EditRecipeDialog(
     mode: RecipeDialogMode,
     recipe: Recipe?,
     onDismiss: () -> Unit,
-    onSave: (String, String) -> Unit
+    onSave: (String, String) -> Unit,
+    onDelete: () -> Unit,
+    onTakePhoto: () -> Unit,
 ) {
     var name by remember { mutableStateOf(recipe?.name ?: "") }
     var ingredients by remember { mutableStateOf(recipe?.ingredients ?: "") }
@@ -197,6 +220,9 @@ private fun EditRecipeDialog(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    TextButton(onClick = onTakePhoto) { Text("Add Photo") }
+                }
             }
         },
         confirmButton = {
@@ -205,6 +231,19 @@ private fun EditRecipeDialog(
             }
         },
         dismissButton = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (mode == RecipeDialogMode.EDIT) {
+                    TextButton(
+                        onClick = onDelete,
+                    ) {
+                        Text("Delete")
+                    }
+                }
+            }
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )

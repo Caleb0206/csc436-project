@@ -1,12 +1,17 @@
 package com.example.preppin.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Alignment
 import com.example.preppin.MealPlanViewModel
 import com.example.preppin.Recipe
 import com.example.preppin.model.Day
@@ -30,32 +35,84 @@ fun PrepScreen(
     var eatOne by remember { mutableStateOf(true) }
 
     var error by remember { mutableStateOf<String?>(null) }
+    val isLandscape =
+        LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
     Scaffold() { inner ->
         Column(
             modifier = Modifier
                 .padding(inner)
+                .fillMaxSize()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            DayDropDown(value = day, onChange = { day = it })
-            MealDropdown(value = time, onChange = { time = it })
-            RecipeDropdown(recipes = recipes, value = recipeId, onChange = { recipeId = it })
+            if (isLandscape) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        DayDropDown(value = day, onChange = { day = it })
+                        MealDropdown(value = time, onChange = { time = it })
+                        RecipeDropdown(
+                            recipes = recipes,
+                            value = recipeId,
+                            onChange = { recipeId = it })
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = servingsText,
+                            onValueChange = { servingsText = it.filter { ch -> ch.isDigit() } },
+                            label = { Text("Servings") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Checkbox(checked = eatOne, onCheckedChange = { eatOne = it })
+                            Text("Eat one serving on cooking day")
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Checkbox(
+                                checked = breakfastOnly,
+                                onCheckedChange = { breakfastOnly = it })
+                            Text("Fill breakfast only")
+                        }
+                    }
+                }
+            } else {
 
-            OutlinedTextField(
-                value = servingsText,
-                onValueChange = { servingsText = it.filter { ch -> ch.isDigit() } },
-                label = { Text("Servings") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Checkbox(checked = eatOne, onCheckedChange = { eatOne = it })
-                Text("Eat one serving on cooking day")
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Checkbox(checked = breakfastOnly, onCheckedChange = { breakfastOnly = it })
-                Text("Fill breakfast only")
+
+                DayDropDown(value = day, onChange = { day = it })
+                MealDropdown(value = time, onChange = { time = it })
+                RecipeDropdown(recipes = recipes, value = recipeId, onChange = { recipeId = it })
+
+                OutlinedTextField(
+                    value = servingsText,
+                    onValueChange = { servingsText = it.filter { ch -> ch.isDigit() } },
+                    label = { Text("Servings") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Checkbox(checked = eatOne, onCheckedChange = { eatOne = it })
+                    Text("Eat one serving on cooking day")
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Checkbox(checked = breakfastOnly, onCheckedChange = { breakfastOnly = it })
+                    Text("Fill breakfast only")
+                }
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 

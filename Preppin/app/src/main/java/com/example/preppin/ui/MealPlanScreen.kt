@@ -233,7 +233,19 @@ private fun SlotCell(
     modifier: Modifier = Modifier,
     height: Dp = 50.dp
 ) {
+    val containerColor = when (cell) {
+        is Cell.Cooking -> MaterialTheme.colorScheme.tertiaryContainer
+        is Cell.Prepped -> MaterialTheme.colorScheme.primaryContainer
+        null -> MaterialTheme.colorScheme.surface
+    }
+    val contentColor = when (cell) {
+        is Cell.Cooking -> MaterialTheme.colorScheme.onTertiaryContainer
+        is Cell.Prepped -> MaterialTheme.colorScheme.onPrimaryContainer
+        null -> MaterialTheme.colorScheme.onSurface
+    }
     Surface(
+        color = containerColor,
+        contentColor = contentColor,
         tonalElevation = 2.dp,
         shape = MaterialTheme.shapes.medium,
         modifier = modifier

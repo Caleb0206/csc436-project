@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
 import androidx.navigation.compose.rememberNavController
+import com.example.preppin.data.RecipeEntity
 import com.example.preppin.ui.AppLayout
 import com.example.preppin.ui.CameraScreen
 import com.example.preppin.ui.MealPlanScreen
@@ -63,6 +64,7 @@ fun MainApp(
                         recipes = recipes,
                         onUpsertRecipe = { recipe -> viewModel.upsertRecipe(recipe) },
                         onTakePhoto = { recipeId -> navController.navigate("camera/$recipeId") },
+                        onDeleteRecipe = { recipe -> viewModel.deleteRecipe(recipe) }
                     )
                 }
 

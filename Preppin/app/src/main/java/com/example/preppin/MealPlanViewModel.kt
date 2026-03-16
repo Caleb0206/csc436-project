@@ -27,7 +27,7 @@ class MealPlanViewModel(private val repo: MealRepository) : ViewModel() {
     val recipes: StateFlow<List<Recipe>> = repo.recipesFlow
         .map { list -> list.map { it.toDomain() } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-    
+
     private fun slotsListToCalendar(slots: List<MealSlotEntity>): Map<Day, DayMeals> {
         val base = Day.entries.associateWith { DayMeals() }.toMutableMap()
         for (e in slots) {
@@ -142,6 +142,12 @@ class MealPlanViewModel(private val repo: MealRepository) : ViewModel() {
     fun upsertRecipe(recipe: Recipe) {
         viewModelScope.launch {
             repo.upsertRecipe(recipe.toEntity())
+        }
+    }
+
+    fun deleteRecipe(recipe: Recipe) {
+        viewModelScope.launch {
+            repo.deleteRecipe(recipe.toEntity())
         }
     }
 
