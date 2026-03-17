@@ -220,9 +220,17 @@ private fun EditRecipeDialog(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    TextButton(onClick = onTakePhoto) { Text("Add Photo") }
+                if (mode == RecipeDialogMode.EDIT) {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        TextButton(onClick = onTakePhoto) { Text("Add Photo") }
+                    }
+                } else {
+                    Text(
+                        text = "Save the recipe first to add a photo!",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
+
             }
         },
         confirmButton = {
@@ -237,8 +245,13 @@ private fun EditRecipeDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (mode == RecipeDialogMode.EDIT) {
-                    TextButton(
+                    Button(
                         onClick = onDelete,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
+
                     ) {
                         Text("Delete")
                     }
