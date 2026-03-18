@@ -9,8 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import com.example.preppin.MealPlanViewModel
 import com.example.preppin.Recipe
@@ -27,16 +26,22 @@ fun PrepScreen(
     onSubmitted: () -> Unit,
     viewModel: MealPlanViewModel
 ) {
-    var day by remember { mutableStateOf(Day.SUN) }
-    var time by remember { mutableStateOf(MealType.BREAKFAST) }
-    var recipeId by remember { mutableStateOf(recipes.firstOrNull()?.id ?: "") }
-    var servingsText by remember { mutableStateOf("2") }
-    var breakfastOnly by remember { mutableStateOf(false) }
-    var eatOne by remember { mutableStateOf(true) }
+    val day = Day.valueOf(viewModel.prepDayName)
+    val time = MealType.valueOf(viewModel.prepTimeName)
+    val recipeId = viewModel.prepRecipeId
+    val servingsText = viewModel.prepServingsText
+    val breakfastOnly = viewModel.prepBreakfastOnly
+    val eatOne = viewModel.prepEatOne
+    val error = viewModel.prepError
 
-    var error by remember { mutableStateOf<String?>(null) }
     val isLandscape =
         LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
+    LaunchedEffect(recipes) {
+        if (recipes.none { it.id == recipeId }) {
+            viewModel.updatePrepRecipeId(recipes.firstOrNull()?.id ?: "")
+        }
+    }
 
     Scaffold() { inner ->
         Column(
@@ -55,12 +60,16 @@ fun PrepScreen(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        DayDropDown(value = day, onChange = { day = it })
-                        MealDropdown(value = time, onChange = { time = it })
+                        DayDropDown(
+                            value = day,
+                            onChange = { viewModel.updatePrepDayName(it.name) })
+                        MealDropdown(
+                            value = time,
+                            onChange = { viewModel.updatePrepTimeName(it.name) })
                         RecipeDropdown(
                             recipes = recipes,
                             value = recipeId,
-                            onChange = { recipeId = it })
+                            onChange = { viewModel.updatePrepRecipeId(it) })
                     }
                     Column(
                         modifier = Modifier.weight(1f),
@@ -68,7 +77,9 @@ fun PrepScreen(
                     ) {
                         OutlinedTextField(
                             value = servingsText,
-                            onValueChange = { servingsText = it.filter { ch -> ch.isDigit() } },
+                            onValueChange = {
+                                viewModel.updatePrepServingsText(it.filter { ch -> ch.isDigit() })
+                            },
                             label = { Text("Servings") },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -77,7 +88,9 @@ fun PrepScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Checkbox(checked = eatOne, onCheckedChange = { eatOne = it })
+                            Checkbox(
+                                checked = eatOne,
+                                onCheckedChange = { viewModel.updatePrepEatOne(it) })
                             Text("Eat one serving on cooking day")
                         }
                         Row(
@@ -86,7 +99,7 @@ fun PrepScreen(
                         ) {
                             Checkbox(
                                 checked = breakfastOnly,
-                                onCheckedChange = { breakfastOnly = it })
+                                onCheckedChange = { viewModel.updatePrepBreakfastOnly(it) })
                             Text("Fill breakfast only")
                         }
                     }
@@ -94,23 +107,30 @@ fun PrepScreen(
             } else {
 
 
-                DayDropDown(value = day, onChange = { day = it })
-                MealDropdown(value = time, onChange = { time = it })
-                RecipeDropdown(recipes = recipes, value = recipeId, onChange = { recipeId = it })
+                DayDropDown(value = day, onChange = { viewModel.updatePrepDayName(it.name) })
+                MealDropdown(value = time, onChange = { viewModel.updatePrepTimeName(it.name) })
+                RecipeDropdown(
+                    recipes = recipes,
+                    value = recipeId,
+                    onChange = { viewModel.updatePrepRecipeId(it) })
 
                 OutlinedTextField(
                     value = servingsText,
-                    onValueChange = { servingsText = it.filter { ch -> ch.isDigit() } },
+                    onValueChange = {
+                        viewModel.updatePrepServingsText(it.filter { ch -> ch.isDigit() })
+                    },
                     label = { Text("Servings") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Checkbox(checked = eatOne, onCheckedChange = { eatOne = it })
+                    Checkbox(checked = eatOne, onCheckedChange = { viewModel.updatePrepEatOne(it) })
                     Text("Eat one serving on cooking day")
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Checkbox(checked = breakfastOnly, onCheckedChange = { breakfastOnly = it })
+                    Checkbox(
+                        checked = breakfastOnly,
+                        onCheckedChange = { viewModel.updatePrepBreakfastOnly(it) })
                     Text("Fill breakfast only")
                 }
             }
@@ -139,9 +159,9 @@ fun PrepScreen(
                         )
 
                         if (!res.ok) {
-                            error = res.message
+                            viewModel.updatePrepError(res.message)
                         } else {
-                            error = null
+                            viewModel.updatePrepError(null)
                             onSubmitted()
                         }
                     },

@@ -1,16 +1,18 @@
 package com.example.preppin
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.example.preppin.data.MealRepository
 import com.example.preppin.data.MealSlotEntity
 import com.example.preppin.data.cellToEntity
 import com.example.preppin.data.toCell
 import com.example.preppin.data.toDomain
 import com.example.preppin.data.toEntity
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.max
 import com.example.preppin.model.*
 import kotlinx.coroutines.flow.map
@@ -23,7 +25,130 @@ data class MealPlanUiState(
     val calendar: Map<Day, DayMeals> = emptyMap()
 )
 
-class MealPlanViewModel(private val repo: MealRepository) : ViewModel() {
+class MealPlanViewModel(
+    private val repo: MealRepository,
+    private val savedStateHandle: SavedStateHandle
+) : ViewModel() {
+
+    // PrepScreen state
+    var prepDayName by mutableStateOf(savedStateHandle["prepDayName"] ?: Day.SUN.name)
+        private set
+
+    var prepTimeName by mutableStateOf(savedStateHandle["prepTimeName"] ?: MealType.BREAKFAST.name)
+        private set
+
+    var prepRecipeId by mutableStateOf(savedStateHandle["prepRecipeId"] ?: "")
+        private set
+
+    var prepServingsText by mutableStateOf(savedStateHandle["prepServingsText"] ?: "2")
+        private set
+
+    var prepBreakfastOnly by mutableStateOf(savedStateHandle["prepBreakfastOnly"] ?: false)
+        private set
+
+    var prepEatOne by mutableStateOf(savedStateHandle["prepEatOne"] ?: true)
+        private set
+
+    var prepError by mutableStateOf<String?>(savedStateHandle["prepError"])
+        private set
+
+    fun updatePrepDayName(value: String) {
+        prepDayName = value
+        savedStateHandle["prepDayName"] = value
+    }
+
+    fun updatePrepTimeName(value: String) {
+        prepTimeName = value
+        savedStateHandle["prepTimeName"] = value
+    }
+
+    fun updatePrepRecipeId(value: String) {
+        prepRecipeId = value
+        savedStateHandle["prepRecipeId"] = value
+    }
+
+    fun updatePrepServingsText(value: String) {
+        prepServingsText = value
+        savedStateHandle["prepServingsText"] = value
+    }
+
+    fun updatePrepBreakfastOnly(value: Boolean) {
+        prepBreakfastOnly = value
+        savedStateHandle["prepBreakfastOnly"] = value
+    }
+
+    fun updatePrepEatOne(value: Boolean) {
+        prepEatOne = value
+        savedStateHandle["prepEatOne"] = value
+    }
+
+    fun updatePrepError(value: String?) {
+        prepError = value
+        savedStateHandle["prepError"] = value
+    }
+
+
+    // RecipeScreen state
+    var recipeDialogOpen by mutableStateOf(savedStateHandle["recipeDialogOpen"] ?: false)
+        private set
+
+    var recipeDialogModeName by mutableStateOf(savedStateHandle["recipeDialogModeName"] ?: "EDIT")
+        private set
+
+    var activeRecipeId by mutableStateOf<String?>(savedStateHandle["activeRecipeId"])
+        private set
+
+    var recipeDraftName by mutableStateOf(savedStateHandle["recipeDraftName"] ?: "")
+        private set
+
+    var recipeDraftIngredients by mutableStateOf(savedStateHandle["recipeDraftIngredients"] ?: "")
+        private set
+
+    fun updateRecipeDraftName(value: String) {
+        recipeDraftName = value
+        savedStateHandle["recipeDraftName"] = value
+    }
+
+    fun updateRecipeDraftIngredients(value: String) {
+        recipeDraftIngredients = value
+        savedStateHandle["recipeDraftIngredients"] = value
+    }
+
+    fun openAddRecipeDialog() {
+        recipeDialogModeName = "ADD"
+        activeRecipeId = null
+        recipeDraftName = ""
+        recipeDraftIngredients = ""
+
+        savedStateHandle["recipeDialogModeName"] = recipeDialogModeName
+        savedStateHandle["activeRecipeId"] = activeRecipeId
+        savedStateHandle["recipeDraftName"] = recipeDraftName
+        savedStateHandle["recipeDraftIngredients"] = recipeDraftIngredients
+
+        recipeDialogOpen = true
+        savedStateHandle["recipeDialogOpen"] = true
+    }
+
+    fun openEditRecipeDialog(recipe: Recipe) {
+        recipeDialogModeName = "EDIT"
+        activeRecipeId = recipe.id
+        recipeDraftName = recipe.name
+        recipeDraftIngredients = recipe.ingredients
+
+        savedStateHandle["recipeDialogModeName"] = recipeDialogModeName
+        savedStateHandle["activeRecipeId"] = activeRecipeId
+        savedStateHandle["recipeDraftName"] = recipeDraftName
+        savedStateHandle["recipeDraftIngredients"] = recipeDraftIngredients
+
+        recipeDialogOpen = true
+        savedStateHandle["recipeDialogOpen"] = true
+    }
+
+    fun closeRecipeDialog() {
+        recipeDialogOpen = false
+        savedStateHandle["recipeDialogOpen"] = false
+    }
+
     val recipes: StateFlow<List<Recipe>> = repo.recipesFlow
         .map { list -> list.map { it.toDomain() } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())

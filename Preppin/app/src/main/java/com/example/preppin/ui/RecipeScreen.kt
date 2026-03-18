@@ -10,12 +10,15 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.preppin.MealPlanViewModel
 import java.util.UUID
 import com.example.preppin.Recipe
 import java.io.File
@@ -26,37 +29,18 @@ private enum class RecipeDialogMode { ADD, EDIT }
 @Composable
 fun RecipeScreen(
     recipes: List<Recipe>,
+    viewModel: MealPlanViewModel,
     onUpsertRecipe: (Recipe) -> Unit,
     onDeleteRecipe: (Recipe) -> Unit,
     onTakePhoto: (String) -> Unit,
 ) {
-    var isDialogOpen by remember { mutableStateOf(false) }
-    var mode by remember { mutableStateOf(RecipeDialogMode.EDIT) }
-    var activeRecipeId by remember { mutableStateOf<String?>(null) }
+    val isDialogOpen = viewModel.recipeDialogOpen
+    val mode = RecipeDialogMode.valueOf(viewModel.recipeDialogModeName)
+    val activeRecipe = recipes.firstOrNull { it.id == viewModel.activeRecipeId }
 
-    val activeRecipe = remember(activeRecipeId, recipes) {
-        activeRecipeId?.let { id -> recipes.firstOrNull { it.id == id } }
-    }
-
-    fun openAdd() {
-        mode = RecipeDialogMode.ADD
-        activeRecipeId = null
-        isDialogOpen = true
-    }
-
-    fun openEdit(recipe: Recipe) {
-        mode = RecipeDialogMode.EDIT
-        activeRecipeId = recipe.id
-        isDialogOpen = true
-    }
-
-    fun closeDialog() {
-        isDialogOpen = false
-    }
-
-    fun handleSave(nameRaw: String, ingredientsRaw: String) {
-        val name = nameRaw.trim()
-        val ingredients = ingredientsRaw.trim()
+    fun handleSave() {
+        val name = viewModel.recipeDraftName.trim()
+        val ingredients = viewModel.recipeDraftIngredients.trim()
         if (name.isBlank()) return
 
         val recipe = if (mode == RecipeDialogMode.ADD) {
@@ -71,7 +55,7 @@ fun RecipeScreen(
         }
 
         onUpsertRecipe(recipe)
-        closeDialog()
+        viewModel.closeRecipeDialog()
     }
 
     Scaffold() { inner ->
@@ -96,7 +80,7 @@ fun RecipeScreen(
                     items(recipes, key = { it.id }) { r ->
                         RecipeCard(
                             recipe = r,
-                            onEdit = { openEdit(r) },
+                            onEdit = { viewModel.openEditRecipeDialog(r) },
                             onTakePhoto = { onTakePhoto(r.id) },
                         )
                     }
@@ -111,14 +95,14 @@ fun RecipeScreen(
                     items(recipes, key = { it.id }) { r ->
                         RecipeCard(
                             recipe = r,
-                            onEdit = { openEdit(r) },
+                            onEdit = { viewModel.openEditRecipeDialog(r) },
                             onTakePhoto = { onTakePhoto(r.id) }
                         )
                     }
                 }
             }
             Button(
-                onClick = { openAdd() },
+                onClick = { viewModel.openAddRecipeDialog() },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(10.dp)
@@ -131,13 +115,17 @@ fun RecipeScreen(
                 EditRecipeDialog(
                     mode = mode,
                     recipe = activeRecipe,
-                    onDismiss = { closeDialog() },
-                    onSave = { name, ingredients -> handleSave(name, ingredients) },
+                    name = viewModel.recipeDraftName,
+                    ingredients = viewModel.recipeDraftIngredients,
+                    onNameChange = { viewModel.updateRecipeDraftName(it) },
+                    onIngredientsChange = { viewModel.updateRecipeDraftIngredients(it) },
+                    onDismiss = { viewModel.closeRecipeDialog() },
+                    onSave = { handleSave() },
                     onTakePhoto = { activeRecipe?.id?.let { id -> onTakePhoto(id) } },
                     onDelete = {
                         activeRecipe?.let {
                             onDeleteRecipe(it)
-                            closeDialog()
+                            viewModel.closeRecipeDialog()
                         }
                     }
                 )
@@ -189,18 +177,15 @@ private fun RecipeCard(
 private fun EditRecipeDialog(
     mode: RecipeDialogMode,
     recipe: Recipe?,
+    name: String,
+    ingredients: String,
+    onNameChange: (String) -> Unit,
+    onIngredientsChange: (String) -> Unit,
     onDismiss: () -> Unit,
-    onSave: (String, String) -> Unit,
+    onSave: () -> Unit,
     onDelete: () -> Unit,
     onTakePhoto: () -> Unit,
 ) {
-    var name by remember { mutableStateOf(recipe?.name ?: "") }
-    var ingredients by remember { mutableStateOf(recipe?.ingredients ?: "") }
-
-    LaunchedEffect(recipe?.id, mode) {
-        name = recipe?.name ?: ""
-        ingredients = recipe?.ingredients ?: ""
-    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (mode == RecipeDialogMode.ADD) "Add Recipe" else "Edit Recipe") },
@@ -208,14 +193,14 @@ private fun EditRecipeDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = onNameChange,
                     label = { Text("Name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = ingredients,
-                    onValueChange = { ingredients = it },
+                    onValueChange = onIngredientsChange,
                     label = { Text("Ingredients") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
@@ -234,7 +219,7 @@ private fun EditRecipeDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(name, ingredients) }) {
+            Button(onClick = onSave) {
                 Text("Save")
             }
         },
@@ -255,9 +240,12 @@ private fun EditRecipeDialog(
                     ) {
                         Text("Delete")
                     }
+                } else {
+                    Spacer(modifier = Modifier.width(1.dp))
                 }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
             }
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+
         }
     )
 }

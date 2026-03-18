@@ -62,6 +62,7 @@ fun MainApp(
                 composable("recipes") {
                     RecipeScreen(
                         recipes = recipes,
+                        viewModel = viewModel,
                         onUpsertRecipe = { recipe -> viewModel.upsertRecipe(recipe) },
                         onTakePhoto = { recipeId -> navController.navigate("camera/$recipeId") },
                         onDeleteRecipe = { recipe -> viewModel.deleteRecipe(recipe) }
